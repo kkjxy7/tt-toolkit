@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TTAM Toolkit</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- 引入日期范围选择器 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css">
+    <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/litepicker.js"></script>
+    <!-- 引入 OCR 核心库 -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部：延续之前的紫蓝渐变风格 -->
+        <header>
+            <div class="header-content">
+                <h1>Jakki's Toolkit</h1>
+                <p>TikTok Ads 快捷链接生成器 & 自动化提取工具</p>
+            </div>
+        </header>
+
+        <div class="app-body">
+            <!-- 左侧侧边栏：集成在容器内 -->
+            <nav class="sidebar">
+                <div class="tab-nav">
+                    <button class="tab-btn active" data-tab="ttam">
+                        <span class="icon">🔗</span> 链接生成
+                    </button>
+                    <button class="tab-btn" data-tab="transform">
+                        <span class="icon">🔄</span> 格式转换
+                    </button>
+                    <button class="tab-btn" data-tab="ocr">
+                        <span class="icon">📸</span> 图片提取
+                    </button>
+                </div>
+                <div class="sidebar-footer">v1.1.0</div>
+            </nav>
+
+            <!-- 右侧内容区 -->
+            <main class="content-area">
+                <!-- TTAM 链接生成 Tab -->
+                <div class="tab-content active" id="tab-ttam">
+                    <!-- Account Level -->
+                    <div class="account-section">
+                        <div class="section-title"><span>Account Level</span></div>
+                        <p class="subtitle">选择账号类型，点击卡片进入 TTAM后台 或跳转 Camp Level</p>
+
+                        <div class="account-type-tabs" id="account-type-tabs"></div>
+                        <div class="account-grid" id="account-cards"></div>
+
+                        <div class="custom-account-box">
+                            <div class="section-title" style="font-size: 0.9rem; border: none; margin-bottom: 10px;">其他账号</div>
+                            <div class="custom-account-row">
+                                <input type="text" id="custom-advid" placeholder="输入 Account ID">
+                                <button class="btn btn-secondary" id="custom-account-dashboard">Account</button>
+                                <button class="btn btn-secondary" id="custom-account-camp">Camp</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Camp Level -->
+                    <div id="camp-level-section">
+                        <div class="section-title"><span>Camp Level</span></div>
+                        <p class="subtitle">选择账号并输入 Camp ID，自动生成 Campaign 管理链接</p>
+
+                        <div class="mode-tabs">
+                            <button class="mode-tab active" data-mode="list">从列表选择</button>
+                            <button class="mode-tab" data-mode="custom">自定义输入</button>
+                        </div>
+
+                        <div id="camp-selectors" class="camp-selectors">
+                            <div class="form-row three-col">
+                                <div class="form-group">
+                                    <label>账号类型</label>
+                                    <select id="camp-type">
+                                        <option value="">-- 请选择类型 --</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Market</label>
+                                    <select id="camp-market">
+                                        <option value="">-- 请选择 Market --</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>账号</label>
+                                    <select id="camp-account">
+                                        <option value="">-- 请先选择 Market --</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="custom-camp-row" class="form-row hidden">
+                            <div class="form-group">
+                                <label>自定义 Account ID</label>
+                                <input type="text" id="camp-custom-advid" placeholder="输入 Account ID">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Camp ID 列表</label>
+                            <textarea id="camp-ids" placeholder="支持空格、换行、逗号分隔..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label>日期范围</label>
+                            <div class="date-picker-bar">
+                                <input type="text" id="date-range" class="date-range-input" placeholder="选择日期范围" readonly>
+                                <div class="shortcut-group">
+                                    <button type="button" class="shortcut-btn active" id="btn-date-1" onclick="setDateRange('1')">昨天</button>
+                                    <button type="button" class="shortcut-btn" id="btn-date-7" onclick="setDateRange('7')">7天</button>
+                                    <button type="button" class="shortcut-btn" id="btn-date-30" onclick="setDateRange('30')">30天</button>
+                                </div>
+                            </div>
+                            <!-- 隐藏字段，供 JS 逻辑读取 -->
+                            <input type="hidden" id="start-date">
+                            <input type="hidden" id="end-date">
+                        </div>
+
+                        <div class="btn-group">
+                            <button class="btn btn-primary" id="btn-generate">生成链接</button>
+                        </div>
+
+                        <div class="link-result hidden" id="link-result">
+                            <a href="#" id="generated-link" target="_blank"></a>
+                            <div class="btn-group" style="margin-top: 10px;">
+                                <button class="btn btn-secondary" id="btn-open-link">打开链接</button>
+                                <button class="btn btn-secondary" id="btn-copy-link">复制链接</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 格式转换 Tab -->
+                <div class="tab-content" id="tab-transform">
+                    <div class="section-title"><span>Campaign ID 格式转换</span></div>
+                    <p class="subtitle">自动将混输的 Camp ID 转换成标准格式</p>
+
+                    <div class="form-group">
+                        <label>原始输入</label>
+                        <textarea id="transform-input" placeholder="粘贴 Camp ID"></textarea>
+                    </div>
+
+                    <div class="options-row">
+                        <label><input type="checkbox" id="deduplicate" checked> 去重</label>
+                        <label><input type="radio" name="output-mode" value="newline" checked> 每行一个</label>
+                        <label><input type="radio" name="output-mode" value="comma"> 逗号分隔</label>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn btn-primary" id="btn-transform">立即转换</button>
+                        <button class="btn btn-secondary" id="btn-copy-output">复制结果</button>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 16px;">
+                        <label>转换结果</label>
+                        <textarea id="transform-output" readonly placeholder="结果会显示在这里"></textarea>
+                    </div>
+                </div>
+
+                <!-- 图片提取 Tab -->
+                <div class="tab-content" id="tab-ocr">
+                    <div class="section-title"><span>图片识别提取</span></div>
+                    <p class="subtitle">支持点击上传图片，或直接在页面按下 Ctrl+V 粘贴图片识别</p>
+
+                    <div class="ocr-wrapper">
+                        <!-- 上传区 -->
+                        <div class="ocr-dropzone" id="ocr-dropzone">
+                            <input type="file" id="ocr-upload" accept="image/*" class="hidden">
+                            <div class="dropzone-hint">
+                                <span class="icon">🖼️</span>
+                                <p>点击上传 或 直接粘贴图片</p>
+                            </div>
+                            <img id="ocr-preview" class="hidden" alt="预览">
+                            <button type="button" id="btn-ocr-clear" class="ocr-clear-btn hidden">删除图片，重新识别</button>
+                        </div>
+
+                        <!-- 进度 -->
+                        <div id="ocr-progress" class="hidden">
+                            <div class="progress-bar-bg">
+                                <div class="progress-bar-fill" id="ocr-progress-fill"></div>
+                            </div>
+                            <p id="ocr-status">准备识别中...</p>
+                        </div>
+
+                        <!-- 结果展示 -->
+                        <div class="ocr-results">
+                            <div class="form-group">
+                                <div class="label-row">
+                                    <label>1. 图上所有文字</label>
+                                    <button class="btn-text" id="btn-copy-ocr-raw">复制全文</button>
+                                </div>
+                                <textarea id="ocr-raw-text" placeholder="识别到的原始文字..."></textarea>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <div class="label-row">
+                                        <label>2. 提取的 ID</label>
+                                        <button class="btn-text" id="btn-copy-ocr-ids">复制</button>
+                                    </div>
+                                    <textarea id="ocr-ids" placeholder="检测到的数字 ID"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <div class="label-row">
+                                        <label>3. 提取的 Link</label>
+                                        <button class="btn-text" id="btn-copy-ocr-links">复制</button>
+                                    </div>
+                                    <textarea id="ocr-links" placeholder="检测到的链接"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+    <script src="app.js"></script>
+</body>
+</html>
