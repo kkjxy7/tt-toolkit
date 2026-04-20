@@ -328,10 +328,93 @@ textarea {
     resize: vertical;
 }
 
+/* 格式转换选项布局 */
+.transform-options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+    background: #f8fafc;
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+}
+
+.option-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+    color: #475569;
+}
+
+.option-label {
+    font-weight: 700;
+    min-width: 75px;
+    color: #1e293b;
+}
+
+.option-group label {
+    margin: 0 !important;
+    display: flex !important;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    font-weight: 500 !important;
+}
+
+.mini-input {
+    width: 60px !important;
+    padding: 4px 8px !important;
+    height: 28px !important;
+    font-size: 0.8rem !important;
+    border-radius: 6px !important;
+    margin-left: 2px;
+}
+
+.mini-input:disabled {
+    background: #f1f5f9 !important;
+    color: #cbd5e1 !important;
+    border-color: #e2e8f0 !important;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
 /* 按钮组 */
 .btn-group {
     display: flex;
     gap: 12px;
+}
+
+#generated-link {
+    display: inline-block;
+    word-break: break-all;
+    margin-bottom: 12px;
+    color: #4f46e5;
+    text-decoration: none;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+#generated-link:hover {
+    text-decoration: underline;
+}
+
+.ocr-mode-toggle {
+    display: flex;
+    gap: 12px;
+    font-size: 0.8rem;
+    font-weight: 400;
+}
+
+.ocr-mode-toggle label {
+    margin: 0 !important;
+    display: flex !important;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    font-weight: normal !important;
 }
 
 .btn {

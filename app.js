@@ -11,7 +11,8 @@ const ACCOUNTS = [
   { type: 'RTA', market: 'MY', name: 'Shopee MY - RTA', advId: '7369537989195743233' },
   { type: 'RTA', market: 'SG', name: 'Shopee SG - RTA', advId: '7369540364748734481' },
   { type: 'RTA', market: 'TW', name: 'Shopee TW - RTA', advId: '7395071134275911697' },
-  { type: 'RTA', market: 'AR', name: 'Shopee AR - RTA', advId: '7062167500011634690' },
+  { type: 'RTA', market: 'AR', name: 'Shopee AR', advId: '7062167500011634690' },
+  { type: 'RTA', market: 'AR', name: 'Shopee AR - DPA', advId: '7062168061691822081' },
 
   // ---- Pangle S+2.0 账号 ----
   { type: 'Pangle', market: 'BR', name: 'Shopee BR - Pangle S+2.0', advId: '7571016854194602001' },
@@ -208,6 +209,8 @@ function handleGenerate() {
 const OCR = {
   isProcessing: false,
   worker: null,
+  rawTextData: '',
+  squashedTextData: '',
 
   async getWorker() {
     if (!this.worker) {
@@ -279,6 +282,14 @@ const OCR = {
 
     // 删除/重新识别按钮
     document.getElementById('btn-ocr-clear').onclick = () => this.clear();
+
+    // 模式切换
+    document.querySelectorAll('input[name="ocr-mode"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        const mode = e.target.value;
+        document.getElementById('ocr-raw-text').value = mode === 'raw' ? this.rawTextData : this.squashedTextData;
+      });
+    });
   },
 
   clear() {
@@ -337,31 +348,33 @@ const OCR = {
   },
 
   processResult(text) {
-    // 1. 全量文字
-    document.getElementById('ocr-raw-text').value = text;
+    this.rawTextData = text;
+    
+    // 1. 极简清洗逻辑：去掉所有空格和换行，解决链接被物理截断的问题
+    // 同时把 OCR 常见的 ;// 纠正回 ://，这不属于特殊规则，而是基础容错
+    let cleanText = text.replace(/[;]\/\//g, '://').replace(/\s+/g, '');
+    
+    // 2. 格式化：在每个 http 前面加个换行，让多条链接在显示和提取时彼此独立
+    this.squashedTextData = cleanText.replace(/(https?:\/\/)/gi, '\n$1').trim();
 
-    // 2. 提取 ID (15-20位数字)
-    const ids = [...new Set(text.match(/\d{15,20}/g) || [])];
+    // 根据用户选择的模式展示内容
+    const currentMode = document.querySelector('input[name="ocr-mode"]:checked').value;
+    document.getElementById('ocr-raw-text').value = currentMode === 'raw' ? this.rawTextData : this.squashedTextData;
+
+    // 3. 通用提取：基于清洗后的文本，提取所有符合网址特征的字符串
+    const targetText = this.squashedTextData;
+
+    // 提取数字 ID (15-20位)
+    const ids = [...new Set(targetText.match(/\d{15,20}/g) || [])];
     document.getElementById('ocr-ids').value = ids.join('\n');
 
-    // 3. 提取链接：先修复被换行截断的 URL
-    const lines = text.split('\n');
-    const merged = [];
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (i > 0 && merged[merged.length - 1].match(/https?:\/\/[^\s]*$/) && !line.match(/^https?:\/\//)) {
-        merged[merged.length - 1] += line;
-      } else {
-        merged.push(line);
-      }
-    }
-    const linkText = merged.join('\n');
-
-    const linkRegex = /https?:\/\/[a-zA-Z0-9_\-.\/?&=+%#~:@]+/g;
-    let links = [...new Set(linkText.match(linkRegex) || [])];
-    // 清理末尾常见标点
+    // 提取链接 (通用匹配 http/https 开头的字符串)
+    const linkRegex = /https?:\/\/[a-zA-Z0-9_\-.\/?&=+%#~:@]+/gi;
+    let links = [...new Set(targetText.match(linkRegex) || [])];
+    
+    // 清理链接末尾的标点符号
     links = links.map(l => l.replace(/[.,;:!?。，；：！？"'"'》）」\]\)>]+$/, ''))
-                 .filter(l => l.length > 10 && l.includes('.'));
+                 .filter(l => l.length > 8); // 长度过滤，太短的显然不是有效链接
 
     document.getElementById('ocr-links').value = links.join('\n');
 
@@ -436,15 +449,62 @@ document.addEventListener('DOMContentLoaded', () => {
   // 格式转换逻辑
   const tIn = document.getElementById('transform-input');
   const tOut = document.getElementById('transform-output');
+  
   const updateTrans = () => {
-    const mode = document.querySelector('input[name="output-mode"]:checked').value;
-    const dedup = document.getElementById('deduplicate').checked;
     let ids = parseIds(tIn.value);
-    if (dedup) ids = [...new Set(ids)];
-    tOut.value = ids.join(mode === 'comma' ? ',' : '\n');
+    
+    // 1. 去重
+    if (document.getElementById('deduplicate').checked) {
+      ids = [...new Set(ids)];
+    }
+
+    // 2. 包装样式处理与状态更新
+    const wrapStyleEl = document.querySelector('input[name="wrap-style"]:checked');
+    const wrapStyle = wrapStyleEl ? wrapStyleEl.value : 'none';
+    const preInput = document.getElementById('custom-wrap-pre');
+    const sufInput = document.getElementById('custom-wrap-suf');
+    
+    // 只有选了自定义，才启用输入框
+    preInput.disabled = (wrapStyle !== 'custom');
+    sufInput.disabled = (wrapStyle !== 'custom');
+    
+    const wrapPre = preInput.value;
+    const wrapSuf = sufInput.value;
+    
+    ids = ids.map(id => {
+      if (wrapStyle === 'single') return `'${id}'`;
+      if (wrapStyle === 'double') return `"${id}"`;
+      if (wrapStyle === 'custom') return `${wrapPre}${id}${wrapSuf}`;
+      return id;
+    });
+
+    // 3. 连接方式处理与状态更新
+    const outputModeEl = document.querySelector('input[name="output-mode"]:checked');
+    const outputMode = outputModeEl ? outputModeEl.value : 'newline';
+    const sepInput = document.getElementById('custom-sep');
+    
+    // 只有选了自定义，才启用输入框
+    sepInput.disabled = (outputMode !== 'custom');
+    
+    const customSep = sepInput.value;
+    
+    let separator = '\n';
+    if (outputMode === 'comma') separator = ',';
+    if (outputMode === 'custom') separator = customSep;
+    
+    tOut.value = ids.join(separator);
   };
+
   document.getElementById('btn-transform').onclick = updateTrans;
   document.getElementById('btn-copy-output').onclick = () => copyText(tOut.value);
+  
+  // 监听所有输入变动
   tIn.oninput = updateTrans;
-  document.querySelectorAll('input[name="output-mode"], #deduplicate').forEach(el => el.onchange = updateTrans);
+  const selectors = 'input[name="output-mode"], input[name="wrap-style"], #deduplicate, #custom-wrap-pre, #custom-wrap-suf, #custom-sep';
+  document.querySelectorAll(selectors).forEach(el => {
+    el.addEventListener(el.type === 'text' ? 'input' : 'change', updateTrans);
+  });
+  
+  // 初始化一次状态
+  updateTrans();
 });

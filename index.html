@@ -35,7 +35,7 @@
                         <span class="icon">📸</span> 图片提取
                     </button>
                 </div>
-                <div class="sidebar-footer">v1.1.0</div>
+                <div class="sidebar-footer"></div>
             </nav>
 
             <!-- 右侧内容区 -->
@@ -144,10 +144,32 @@
                         <textarea id="transform-input" placeholder="粘贴 Camp ID"></textarea>
                     </div>
 
-                    <div class="options-row">
-                        <label><input type="checkbox" id="deduplicate" checked> 去重</label>
-                        <label><input type="radio" name="output-mode" value="newline" checked> 每行一个</label>
-                        <label><input type="radio" name="output-mode" value="comma"> 逗号分隔</label>
+                    <div class="transform-options">
+                        <div class="option-group">
+                            <label><input type="checkbox" id="deduplicate" checked> 一键去重</label>
+                        </div>
+                        
+                        <div class="option-group">
+                            <span class="option-label">包装样式:</span>
+                            <label><input type="radio" name="wrap-style" value="none" checked> 无</label>
+                            <label><input type="radio" name="wrap-style" value="single"> 单引号 '</label>
+                            <label><input type="radio" name="wrap-style" value="double"> 双引号 "</label>
+                            <label>
+                                <input type="radio" name="wrap-style" value="custom"> 自定义
+                                <input type="text" id="custom-wrap-pre" class="mini-input" placeholder="前缀" maxlength="5">
+                                <input type="text" id="custom-wrap-suf" class="mini-input" placeholder="后缀" maxlength="5">
+                            </label>
+                        </div>
+
+                        <div class="option-group">
+                            <span class="option-label">连接方式:</span>
+                            <label><input type="radio" name="output-mode" value="newline" checked> 换行</label>
+                            <label><input type="radio" name="output-mode" value="comma"> 逗号 ,</label>
+                            <label>
+                                <input type="radio" name="output-mode" value="custom"> 自定义
+                                <input type="text" id="custom-sep" class="mini-input" placeholder="分隔符" maxlength="5">
+                            </label>
+                        </div>
                     </div>
 
                     <div class="btn-group">
@@ -190,7 +212,13 @@
                         <div class="ocr-results">
                             <div class="form-group">
                                 <div class="label-row">
-                                    <label>1. 图上所有文字</label>
+                                    <div style="display: flex; gap: 16px; align-items: center;">
+                                        <label style="margin: 0;">1. 图上所有文字</label>
+                                        <div class="ocr-mode-toggle">
+                                            <label><input type="radio" name="ocr-mode" value="raw" checked> 保持排版</label>
+                                            <label><input type="radio" name="ocr-mode" value="squash"> 消除换行</label>
+                                        </div>
+                                    </div>
                                     <button class="btn-text" id="btn-copy-ocr-raw">复制全文</button>
                                 </div>
                                 <textarea id="ocr-raw-text" placeholder="识别到的原始文字..."></textarea>
